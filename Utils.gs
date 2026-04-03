@@ -70,3 +70,10 @@ function createStats_() {
     errors: 0
   };
 }
+
+function getTotalChanges_(stats) {
+  return Number(stats.created || 0) +
+    Number(stats.updated || 0) +
+    Number(stats.completed || 0) +
+    Number(stats.deleted || 0);
+}

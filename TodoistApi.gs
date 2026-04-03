@@ -40,11 +40,16 @@ function buildTodoistTaskPayload(issue, repo, config) {
     return assignee.login;
   }).filter(Boolean);
 
+  var repoTag = buildTodoistRepoTag_(repo);
+  var todoistLabels = [repoTag];
+  var githubPriority = extractGithubPriority_(issue, labels);
+
   var payload = {
     project_id: config.todoistProjectId,
-    content: '[' + repo + '] ' + issue.title,
+    content: issue.title,
     description: buildTodoistDescription_(issue, repo, labels, assignees, config),
-    priority: getPriorityFromLabels(labels)
+    priority: getTodoistPriorityFromGithubPriority_(githubPriority, labels),
+    labels: todoistLabels
   };
 
   var dueString = extractDueStringFromIssue_(issue, labels, config);
@@ -111,7 +116,26 @@ function todoistRequest_(config, method, url, payload) {
   return response;
 }
 
-function getPriorityFromLabels(labels) {
+function getTodoistPriorityFromGithubPriority_(githubPriority, labels) {
+  var normalizedPriority = normalizeGithubPriorityValue_(githubPriority);
+
+  if (normalizedPriority === 'top' || normalizedPriority === 'p1') {
+    return 4;
+  }
+  if (normalizedPriority === 'p2') {
+    return 3;
+  }
+  if (normalizedPriority === 'p3') {
+    return 2;
+  }
+  if (normalizedPriority === 'p4') {
+    return 1;
+  }
+
+  return getPriorityFromLabels_(labels);
+}
+
+function getPriorityFromLabels_(labels) {
   var normalized = normalizeLabels_(labels);
 
   if (hasAnyLabel_(normalized, ['p1', 'priority:p1', 'priority-1', 'sev:1', 'severity:1'])) {
@@ -128,12 +152,15 @@ function getPriorityFromLabels(labels) {
 }
 
 function buildTodoistDescription_(issue, repo, labels, assignees, config) {
+  var githubPriority = extractGithubPriority_(issue, labels);
+
   var lines = [
     'GitHub URL: ' + (issue.html_url || ''),
     'GitHub Key: ' + buildGithubIssueKey_(config.githubOwner, repo, issue.number),
     'Issue Number: #' + issue.number,
     'Repo: ' + config.githubOwner + '/' + repo,
     'State: ' + issue.state,
+    'Priority: ' + (githubPriority || '-'),
     'Labels: ' + (labels.length ? labels.join(', ') : '-'),
     'Assignees: ' + (assignees.length ? assignees.join(', ') : '-'),
     'Created At: ' + (issue.created_at || '-'),
@@ -178,11 +205,59 @@ function extractDueStringFromIssue_(issue, labels, config) {
 function shouldUpdateTodoistTask_(task, payload) {
   var taskDueString = task && task.due && (task.due.string || task.due.date) ? String(task.due.string || task.due.date) : null;
   var payloadDueString = payload.due_string ? String(payload.due_string) : null;
+  var currentLabels = normalizeLabels_(task && task.labels ? task.labels : []);
+  var nextLabels = normalizeLabels_(payload.labels || []);
 
   return String(task.content || '') !== String(payload.content || '') ||
     String(task.description || '') !== String(payload.description || '') ||
     Number(task.priority || 1) !== Number(payload.priority || 1) ||
+    currentLabels.join('|') !== nextLabels.join('|') ||
     String(taskDueString || '') !== String(payloadDueString || '');
+}
+
+function extractGithubPriority_(issue, labels) {
+  if (issue && issue.priority) {
+    if (typeof issue.priority === 'string') {
+      return issue.priority;
+    }
+    if (issue.priority.name) {
+      return issue.priority.name;
+    }
+    if (issue.priority.value) {
+      return issue.priority.value;
+    }
+  }
+
+  var normalizedLabels = normalizeLabels_(labels);
+  if (hasAnyLabel_(normalizedLabels, ['top'])) {
+    return 'TOP';
+  }
+  if (hasAnyLabel_(normalizedLabels, ['p1', 'priority:p1', 'priority-1'])) {
+    return 'P1';
+  }
+  if (hasAnyLabel_(normalizedLabels, ['p2', 'priority:p2', 'priority-2'])) {
+    return 'P2';
+  }
+  if (hasAnyLabel_(normalizedLabels, ['p3', 'priority:p3', 'priority-3'])) {
+    return 'P3';
+  }
+  if (hasAnyLabel_(normalizedLabels, ['p4', 'priority:p4', 'priority-4'])) {
+    return 'P4';
+  }
+
+  return null;
+}
+
+function normalizeGithubPriorityValue_(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function buildTodoistRepoTag_(repo) {
+  return String(repo || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 function indexTodoistTasksById_(tasks) {

@@ -70,6 +70,7 @@ function syncGithubIssuesToTodoist() {
       logInfo_(config, 'Dry-run enabled. Mapping and Todoist were not modified.');
     }
 
+    notifyDiscordIfNeeded_(config, stats);
     Logger.log('[INFO] Sync completed. ' + JSON.stringify(stats));
   } finally {
     lock.releaseLock();
@@ -112,6 +113,10 @@ function setupScriptProperties() {
     CLOSE_BEHAVIOR: 'complete',
     DRY_RUN: 'true',
     LOG_VERBOSE: 'true',
+    DISCORD_ENABLED: 'false',
+    DISCORD_WEBHOOK_URL: 'REPLACE_WITH_DISCORD_WEBHOOK_URL',
+    DISCORD_USERNAME: 'GitHub Todoist Sync',
+    DISCORD_NOTIFY_ON_DRY_RUN: 'false',
     ENABLE_DUE_DATE_SYNC: 'false',
     DUE_DATE_LABEL_PREFIX: 'due:'
   }, false);
