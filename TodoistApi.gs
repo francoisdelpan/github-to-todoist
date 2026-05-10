@@ -42,13 +42,13 @@ function buildTodoistTaskPayload(issue, repo, config) {
 
   var repoTag = buildTodoistRepoTag_(repo);
   var todoistLabels = [repoTag];
-  var githubPriority = extractGithubPriority_(issue, labels);
+  var issuePriority = extractGithubPriority_(issue, labels);
 
   var payload = {
     project_id: config.todoistProjectId,
     content: issue.title,
     description: buildTodoistDescription_(issue, repo, labels, assignees, config),
-    priority: getTodoistPriorityFromGithubPriority_(githubPriority, labels),
+    priority: getTodoistPriorityFromGithubPriority_(issuePriority, labels),
     labels: todoistLabels
   };
 
@@ -152,15 +152,15 @@ function getPriorityFromLabels_(labels) {
 }
 
 function buildTodoistDescription_(issue, repo, labels, assignees, config) {
-  var githubPriority = extractGithubPriority_(issue, labels);
+  var issuePriority = extractGithubPriority_(issue, labels);
 
   var lines = [
-    'GitHub URL: ' + (issue.html_url || ''),
-    'GitHub Key: ' + buildGithubIssueKey_(config.githubOwner, repo, issue.number),
+    'Gitea URL: ' + (issue.html_url || ''),
+    'Gitea Key: ' + buildGithubIssueKey_(config.githubOwner, repo, issue.number),
     'Issue Number: #' + issue.number,
     'Repo: ' + config.githubOwner + '/' + repo,
     'State: ' + issue.state,
-    'Priority: ' + (githubPriority || '-'),
+    'Priority: ' + (issuePriority || '-'),
     'Labels: ' + (labels.length ? labels.join(', ') : '-'),
     'Assignees: ' + (assignees.length ? assignees.join(', ') : '-'),
     'Created At: ' + (issue.created_at || '-'),
@@ -287,6 +287,6 @@ function extractGithubKeyFromTaskDescription_(task) {
     return null;
   }
 
-  var match = String(task.description).match(/GitHub Key:\s*([^\n\r]+)/i);
+  var match = String(task.description).match(/(?:GitHub|Gitea)\s+Key:\s*([^\n\r]+)/i);
   return match ? match[1].trim() : null;
 }

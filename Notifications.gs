@@ -50,7 +50,7 @@ function buildDiscordPayload_(config, stats, totalChanges) {
     username: config.discordUsername,
     embeds: [
       {
-        title: 'GitHub -> Todoist sync',
+        title: 'Gitea -> Todoist sync',
         description: summary,
         color: 5814783,
         fields: [
@@ -61,7 +61,7 @@ function buildDiscordPayload_(config, stats, totalChanges) {
         ],
         timestamp: new Date().toISOString(),
         footer: {
-          text: 'GitHub to Todoist'
+          text: 'Gitea to Todoist'
         }
       }
     ]

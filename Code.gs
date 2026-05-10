@@ -7,7 +7,7 @@ function syncGithubIssuesToTodoist() {
 
   try {
     var config = ensureConfig();
-    logInfo_(config, 'Starting sync. dryRun=' + config.dryRun + ', repos=' + config.githubRepos.join(', '));
+    logInfo_(config, 'Starting sync. dryRun=' + config.dryRun + ', repos=' + config.githubRepos.join(', ') + ', baseUrl=' + config.issueBaseUrl);
 
     var mapping = loadMapping();
     var todoistTasks = fetchTodoistTasksForProject(config);
@@ -24,7 +24,7 @@ function syncGithubIssuesToTodoist() {
       try {
         var issues = fetchGithubIssues(config, repo);
         reposFetchedSuccessfully[repo] = true;
-        logInfo_(config, 'Repo ' + repo + ': fetched ' + issues.length + ' open issues from GitHub.');
+        logInfo_(config, 'Repo ' + repo + ': fetched ' + issues.length + ' open issues from Gitea.');
 
         for (var j = 0; j < issues.length; j += 1) {
           var issue = issues[j];
@@ -102,20 +102,25 @@ function testSyncDryRun() {
   }
 }
 
+function syncGiteaIssuesToTodoist() {
+  syncGithubIssuesToTodoist();
+}
+
 function setupScriptProperties() {
   PropertiesService.getScriptProperties().setProperties({
-    GITHUB_TOKEN: 'REPLACE_WITH_GITHUB_TOKEN',
+    GITHUB_TOKEN: 'REPLACE_WITH_GITEA_TOKEN',
     TODOIST_TOKEN: 'REPLACE_WITH_TODOIST_TOKEN',
     TODOIST_PROJECT_ID: 'REPLACE_WITH_TODOIST_PROJECT_ID',
-    GITHUB_OWNER: 'REPLACE_WITH_GITHUB_OWNER',
+    GITHUB_OWNER: 'REPLACE_WITH_GITEA_OWNER',
     GITHUB_REPOS: '["repo-a","repo-b"]',
+    GITEA_BASE_URL: 'https://git.utema.fr/api/v1',
     EXCLUDED_LABELS: '[]',
     CLOSE_BEHAVIOR: 'complete',
     DRY_RUN: 'true',
     LOG_VERBOSE: 'true',
     DISCORD_ENABLED: 'false',
     DISCORD_WEBHOOK_URL: 'REPLACE_WITH_DISCORD_WEBHOOK_URL',
-    DISCORD_USERNAME: 'GitHub Todoist Sync',
+    DISCORD_USERNAME: 'Gitea Todoist Sync',
     DISCORD_NOTIFY_ON_DRY_RUN: 'false',
     ENABLE_DUE_DATE_SYNC: 'false',
     DUE_DATE_LABEL_PREFIX: 'due:'

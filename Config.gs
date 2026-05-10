@@ -4,15 +4,15 @@ var APP_DEFAULTS = {
   DRY_RUN: true,
   LOG_VERBOSE: true,
   DISCORD_ENABLED: false,
-  DISCORD_USERNAME: 'GitHub Todoist Sync',
+  DISCORD_USERNAME: 'Gitea Todoist Sync',
   DISCORD_NOTIFY_ON_DRY_RUN: false,
   ENABLE_DUE_DATE_SYNC: false,
   DUE_DATE_LABEL_PREFIX: 'due:',
-  GITHUB_PER_PAGE: 100,
+  ISSUE_PAGE_LIMIT: 100,
   TODOIST_PAGE_LIMIT: 200,
   TODOIST_BASE_URL: 'https://api.todoist.com/api/v1',
   GITHUB_BASE_URL: 'https://api.github.com',
-  GITHUB_API_VERSION: '2022-11-28'
+  GITEA_BASE_URL: 'https://git.utema.fr/api/v1'
 };
 
 var CONFIG_KEYS = {
@@ -21,6 +21,8 @@ var CONFIG_KEYS = {
   TODOIST_PROJECT_ID: 'TODOIST_PROJECT_ID',
   GITHUB_OWNER: 'GITHUB_OWNER',
   GITHUB_REPOS: 'GITHUB_REPOS',
+  GITHUB_BASE_URL: 'GITHUB_BASE_URL',
+  GITEA_BASE_URL: 'GITEA_BASE_URL',
   EXCLUDED_LABELS: 'EXCLUDED_LABELS',
   CLOSE_BEHAVIOR: 'CLOSE_BEHAVIOR',
   DRY_RUN: 'DRY_RUN',
@@ -44,6 +46,7 @@ function ensureConfig() {
     todoistProjectId: requireProperty_(properties, CONFIG_KEYS.TODOIST_PROJECT_ID),
     githubOwner: requireProperty_(properties, CONFIG_KEYS.GITHUB_OWNER),
     githubRepos: getArrayPropertyOrDefault_(properties, CONFIG_KEYS.GITHUB_REPOS, []),
+    issueBaseUrl: getIssueBaseUrl_(properties),
     excludedLabels: getArrayPropertyOrDefault_(properties, CONFIG_KEYS.EXCLUDED_LABELS, APP_DEFAULTS.EXCLUDED_LABELS),
     closeBehavior: getPropertyOrDefault_(properties, CONFIG_KEYS.CLOSE_BEHAVIOR, APP_DEFAULTS.CLOSE_BEHAVIOR).toLowerCase(),
     dryRun: getBooleanPropertyOrDefault_(properties, CONFIG_KEYS.DRY_RUN, APP_DEFAULTS.DRY_RUN),
@@ -107,4 +110,23 @@ function getBooleanPropertyOrDefault_(properties, key, defaultValue) {
   }
 
   return String(raw).toLowerCase() === 'true';
+}
+
+function getIssueBaseUrl_(properties) {
+  var raw = getPropertyOrDefault_(
+    properties,
+    CONFIG_KEYS.GITEA_BASE_URL,
+    getPropertyOrDefault_(properties, CONFIG_KEYS.GITHUB_BASE_URL, APP_DEFAULTS.GITEA_BASE_URL)
+  );
+
+  var normalized = String(raw || '').trim().replace(/\/+$/, '');
+  if (!normalized) {
+    return APP_DEFAULTS.GITEA_BASE_URL;
+  }
+
+  if (/\/api\/v1$/i.test(normalized)) {
+    return normalized;
+  }
+
+  return normalized + '/api/v1';
 }

@@ -3,21 +3,21 @@ function fetchGithubIssues(config, repo) {
   var page = 1;
 
   while (true) {
-    var url = APP_DEFAULTS.GITHUB_BASE_URL +
+    var url = config.issueBaseUrl +
       '/repos/' + encodeURIComponent(config.githubOwner) + '/' + encodeURIComponent(repo) +
-      '/issues?state=open&per_page=' + APP_DEFAULTS.GITHUB_PER_PAGE +
-      '&page=' + page + '&sort=updated&direction=desc';
+      '/issues?state=open&type=issues&limit=' + APP_DEFAULTS.ISSUE_PAGE_LIMIT +
+      '&page=' + page;
 
     var response = githubRequest_(config, 'get', url);
-    var items = parseJsonResponse_(response, 'GitHub issues list for ' + repo);
+    var items = parseJsonResponse_(response, 'Gitea issues list for ' + repo);
 
     if (!Array.isArray(items)) {
-      throw new Error('Unexpected GitHub response for repo ' + repo + '. Expected an array.');
+      throw new Error('Unexpected Gitea response for repo ' + repo + '. Expected an array.');
     }
 
     allIssues = allIssues.concat(items);
 
-    if (items.length < APP_DEFAULTS.GITHUB_PER_PAGE) {
+    if (items.length < APP_DEFAULTS.ISSUE_PAGE_LIMIT) {
       break;
     }
 
@@ -55,9 +55,8 @@ function githubRequest_(config, method, url, payload) {
     method: method,
     muteHttpExceptions: true,
     headers: {
-      Authorization: 'Bearer ' + config.githubToken,
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': APP_DEFAULTS.GITHUB_API_VERSION
+      Authorization: 'token ' + config.githubToken,
+      Accept: 'application/json'
     }
   };
 
@@ -67,6 +66,6 @@ function githubRequest_(config, method, url, payload) {
   }
 
   var response = UrlFetchApp.fetch(url, options);
-  assertHttpSuccess_(response, 'GitHub', url);
+  assertHttpSuccess_(response, 'Gitea', url);
   return response;
 }
