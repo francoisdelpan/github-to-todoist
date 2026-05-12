@@ -122,6 +122,7 @@ function setupScriptProperties() {
     DISCORD_WEBHOOK_URL: 'REPLACE_WITH_DISCORD_WEBHOOK_URL',
     DISCORD_USERNAME: 'Gitea Todoist Sync',
     DISCORD_NOTIFY_ON_DRY_RUN: 'false',
+    DISCORD_NOTIFY_ON_UPDATES: 'false',
     ENABLE_DUE_DATE_SYNC: 'false',
     DUE_DATE_LABEL_PREFIX: 'due:'
   }, false);
@@ -174,6 +175,7 @@ function upsertIssueToTodoist_(config, repo, issue, mapping, todoistIndex, todoi
   mapping[githubKey] = buildMappingEntry_(issue, repo, taskId);
 
   if (shouldUpdateTodoistTask_(currentTask, payload)) {
+    logInfo_(config, 'Updating Todoist task ' + taskId + ' for ' + githubKey + ': ' + describeTodoistTaskChanges_(currentTask, payload));
     updateTodoistTask(config, taskId, payload);
     stats.updated += 1;
   } else {
@@ -218,4 +220,28 @@ function reconcileInactiveMappedIssues_(config, mapping, todoistIndex, activeGit
 
     delete mapping[githubKey];
   }
+}
+
+function describeTodoistTaskChanges_(task, payload) {
+  var reasons = [];
+  var taskDueString = task && task.due && (task.due.string || task.due.date) ? String(task.due.string || task.due.date) : '';
+  var payloadDueString = payload && payload.due_string ? String(payload.due_string) : '';
+
+  if (normalizeComparableText_(task && task.content ? task.content : '') !== normalizeComparableText_(payload && payload.content ? payload.content : '')) {
+    reasons.push('content');
+  }
+  if (normalizeComparableText_(task && task.description ? task.description : '') !== normalizeComparableText_(payload && payload.description ? payload.description : '')) {
+    reasons.push('description');
+  }
+  if (Number(task && task.priority ? task.priority : 1) !== Number(payload && payload.priority ? payload.priority : 1)) {
+    reasons.push('priority');
+  }
+  if (normalizeComparableLabels_(task && task.labels ? task.labels : []).join('|') !== normalizeComparableLabels_(payload && payload.labels ? payload.labels : []).join('|')) {
+    reasons.push('labels');
+  }
+  if (normalizeComparableText_(taskDueString) !== normalizeComparableText_(payloadDueString)) {
+    reasons.push('due');
+  }
+
+  return reasons.length ? reasons.join(', ') : 'unknown';
 }

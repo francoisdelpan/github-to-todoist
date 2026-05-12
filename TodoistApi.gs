@@ -34,11 +34,11 @@ function fetchTodoistTasksForProject(config) {
 function buildTodoistTaskPayload(issue, repo, config) {
   var labels = (issue.labels || []).map(function(label) {
     return typeof label === 'string' ? label : label.name;
-  }).filter(Boolean);
+  }).filter(Boolean).sort();
 
   var assignees = (issue.assignees || []).map(function(assignee) {
     return assignee.login;
-  }).filter(Boolean);
+  }).filter(Boolean).sort();
 
   var repoTag = buildTodoistRepoTag_(repo);
   var todoistLabels = [repoTag];
@@ -205,14 +205,20 @@ function extractDueStringFromIssue_(issue, labels, config) {
 function shouldUpdateTodoistTask_(task, payload) {
   var taskDueString = task && task.due && (task.due.string || task.due.date) ? String(task.due.string || task.due.date) : null;
   var payloadDueString = payload.due_string ? String(payload.due_string) : null;
-  var currentLabels = normalizeLabels_(task && task.labels ? task.labels : []);
-  var nextLabels = normalizeLabels_(payload.labels || []);
+  var currentLabels = normalizeComparableLabels_(task && task.labels ? task.labels : []);
+  var nextLabels = normalizeComparableLabels_(payload.labels || []);
+  var currentContent = normalizeComparableText_(task && task.content ? task.content : '');
+  var nextContent = normalizeComparableText_(payload.content || '');
+  var currentDescription = normalizeComparableText_(task && task.description ? task.description : '');
+  var nextDescription = normalizeComparableText_(payload.description || '');
+  var currentDue = normalizeComparableText_(taskDueString || '');
+  var nextDue = normalizeComparableText_(payloadDueString || '');
 
-  return String(task.content || '') !== String(payload.content || '') ||
-    String(task.description || '') !== String(payload.description || '') ||
+  return currentContent !== nextContent ||
+    currentDescription !== nextDescription ||
     Number(task.priority || 1) !== Number(payload.priority || 1) ||
     currentLabels.join('|') !== nextLabels.join('|') ||
-    String(taskDueString || '') !== String(payloadDueString || '');
+    currentDue !== nextDue;
 }
 
 function extractGithubPriority_(issue, labels) {
@@ -289,4 +295,14 @@ function extractGithubKeyFromTaskDescription_(task) {
 
   var match = String(task.description).match(/(?:GitHub|Gitea)\s+Key:\s*([^\n\r]+)/i);
   return match ? match[1].trim() : null;
+}
+
+function normalizeComparableText_(value) {
+  return sanitizeLineBreaks_(String(value || ''))
+    .replace(/[ \t]+\n/g, '\n')
+    .trim();
+}
+
+function normalizeComparableLabels_(labels) {
+  return normalizeLabels_(labels).sort();
 }

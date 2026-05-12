@@ -12,14 +12,15 @@ function notifyDiscordIfNeeded_(config, stats) {
     return;
   }
 
-  var totalChanges = getTotalChanges_(stats);
-  if (totalChanges === 0) {
+  var shouldNotifyOnUpdates = !!(config && config.discordNotifyOnUpdates);
+  var notifiableChanges = getNotifiableChanges_(stats, shouldNotifyOnUpdates);
+  if (notifiableChanges === 0) {
     return;
   }
 
   try {
-    sendDiscordWebhook_(config, buildDiscordPayload_(config, stats, totalChanges));
-    logInfo_(config, 'Discord notification sent for ' + totalChanges + ' change(s).');
+    sendDiscordWebhook_(config, buildDiscordPayload_(config, stats, notifiableChanges));
+    logInfo_(config, 'Discord notification sent for ' + notifiableChanges + ' change(s).');
   } catch (error) {
     Logger.log('[ERROR] Discord notification failed: ' + error.message);
   }
@@ -66,4 +67,16 @@ function buildDiscordPayload_(config, stats, totalChanges) {
       }
     ]
   };
+}
+
+function getNotifiableChanges_(stats, includeUpdates) {
+  var total = Number(stats.created || 0) +
+    Number(stats.completed || 0) +
+    Number(stats.deleted || 0);
+
+  if (includeUpdates) {
+    total += Number(stats.updated || 0);
+  }
+
+  return total;
 }
